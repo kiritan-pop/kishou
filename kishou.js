@@ -10,19 +10,11 @@ var user_cnt = 0
 
 server.on('request', function (req, res) {//httpリクエストがあった(=アクセスされた)時に呼ばれる  
     var urlInfo = url.parse(req.url, true);
-    // console.log("Method = ", req.method);
-    // console.log("URL = ", req.url);
-    // console.log("pathname = ", urlInfo.pathname);
-    // console.log("query = ", urlInfo.query);
-    // console.log("hub.mode = ", urlInfo.query['hub.mode']);
-    // for (var item in urlInfo.query) {
-    //     console.log(item);
-    // }
-    // io.emit("msg", "request");
     if (req.method === "GET" && urlInfo.pathname === "/websub") {
         if (urlInfo.query['hub.mode'] === "subscribe" || urlInfo.query['hub.mode'] === "unsubscribe"){
             if (urlInfo.query['hub.verify_token'] === config.verifyToken){
-                console.log("■ ■ ■ 購読確認処理の実行 ■ ■ ■");
+                console.log("■ 購読確認処理");
+                // リクエストに含まれるチャレンジコードをそのまま返せばいいらしい
                 res.writeHead(200, { 'Content-Type': 'text/plain' });
                 res.write(urlInfo.query['hub.challenge']);
                 res.end();
@@ -37,32 +29,24 @@ server.on('request', function (req, res) {//httpリクエストがあった(=ア
             res.end();
         }
     } else if (req.method === "POST" && urlInfo.pathname === "/websub") {
-        console.log("■ ■ ■ 受け取り情報の確認処理の実行 ■ ■ ■");
+        console.log("■ 更新情報受信");
         var data = '';
 
         //POSTデータを受けとる
         req.on('data', function (chunk) { data += chunk })
         req.on('end', function () {
-            // console.log(data);
+            // websocketでそのまま配信するだけ
             io.emit("msg", data);
-            fs.appendFile("out.txt", data, (err, data) => {
+            // 一応ファイルにも書き込んでおくこととす
+            fs.appendFile("out.txt", data + '\n' , (err, data) => {
                 if(err) console.log(err);
                 else console.log('write end');
             });
+            // 受け取り結果は以下のコードで返すらしい
             res.writeHead(204, { 'Content-Type': 'text/plain' });
             res.end();
         })
     }
-    // else if (req.method === "GET" && urlInfo.pathname === "/sockettest.html"){
-    //     res.writeHead(200, {"Content-Type":"text/html"});
-    //     var output = fs.readFileSync("./sockettest.html", "utf-8");
-    //     res.end(output);
-    // }
-    // else {
-    //     res.writeHead(404, { 'Content-Type': 'text/plain' });
-    //     res.write('Not found');
-    //     res.end();
-    // }
 });
 
 io.on('connection', function (socket) {
