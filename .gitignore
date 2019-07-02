@@ -1,0 +1,6 @@
+test/
+old/
+config.js
+*.txt
+node_modules/
+.DS_Store
