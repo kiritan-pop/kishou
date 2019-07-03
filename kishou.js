@@ -7,6 +7,7 @@ var fs = require("fs");
 var server = http.createServer();//httpのサーバを作成するぞー、という関数
 var io = require("socket.io").listen(server);
 var user_cnt = 0
+var crypto = require('crypto');
 
 server.on('request', function (req, res) {//httpリクエストがあった(=アクセスされた)時に呼ばれる  
     var urlInfo = url.parse(req.url, true);
@@ -35,16 +36,27 @@ server.on('request', function (req, res) {//httpリクエストがあった(=ア
         //POSTデータを受けとる
         req.on('data', function (chunk) { data += chunk })
         req.on('end', function () {
-            // websocketでそのまま配信するだけ
-            io.emit("msg", data);
-            // 一応ファイルにも書き込んでおくこととす
-            fs.appendFile("out.txt", data + '\n' , (err, data) => {
-                if(err) console.log(err);
-                else console.log('write end');
-            });
-            // 受け取り結果は以下のコードで返すらしい
-            res.writeHead(204, { 'Content-Type': 'text/plain' });
-            res.end();
+            // データが本物か検証する
+            hash = "sha1=" + crypto.createHmac('sha1', config.verifyToken).update(data).digest('hex')
+            if ('x-hub-signature' in req.headers && hash === req.headers['x-hub-signature']) {
+                // websocketでそのまま配信するだけ
+                io.emit("msg", data);
+                // 一応ファイルにも書き込んでおくこととす
+                fs.appendFile("out.txt", data + '\n' , (err, data) => {
+                    if(err) console.log(err);
+                    else console.log('write end');
+                });
+                // 受け取り結果は以下のコードで返すらしい
+                res.writeHead(204, { 'Content-Type': 'text/plain' });
+                res.end();
+            }
+            else {
+                res.writeHead(400, { 'Content-Type': 'text/plain' });
+                res.write('Bad Request');
+                res.end();    
+            }
+
+
         })
     }
 });
