@@ -8,13 +8,16 @@ var server = http.createServer();//httpのサーバを作成するぞー、と�
 var io = require("socket.io").listen(server);
 var user_cnt = 0
 var crypto = require('crypto');
+require('date-utils');
 
 server.on('request', function (req, res) {//httpリクエストがあった(=アクセスされた)時に呼ばれる  
     var urlInfo = url.parse(req.url, true);
-    if (req.method === "GET" && urlInfo.pathname === "/websub") {
+    var dt = new Date();
+    var formatted = dt.toFormat("YYYY.MM.DD HH24:MI:SS");
+if (req.method === "GET" && urlInfo.pathname === "/websub") {
         if (urlInfo.query['hub.mode'] === "subscribe" || urlInfo.query['hub.mode'] === "unsubscribe"){
             if (urlInfo.query['hub.verify_token'] === config.verifyToken){
-                console.log("■ 購読確認処理");
+                console.log("■ 購読確認処理 " + formatted);
                 // リクエストに含まれるチャレンジコードをそのまま返せばいいらしい
                 res.writeHead(200, { 'Content-Type': 'text/plain' });
                 res.write(urlInfo.query['hub.challenge']);
@@ -30,7 +33,7 @@ server.on('request', function (req, res) {//httpリクエストがあった(=ア
             res.end();
         }
     } else if (req.method === "POST" && urlInfo.pathname === "/websub") {
-        console.log("■ 更新情報受信");
+        console.log("■ 更新情報受信 " + formatted);
         var data = '';
 
         //POSTデータを受けとる
@@ -44,7 +47,7 @@ server.on('request', function (req, res) {//httpリクエストがあった(=ア
                 // 一応ファイルにも書き込んでおくこととす
                 fs.appendFile("out.txt", data + '\n' , (err, data) => {
                     if(err) console.log(err);
-                    else console.log('write end');
+                    // else console.log('write end');
                 });
                 // 受け取り結果は以下のコードで返すらしい
                 res.writeHead(204, { 'Content-Type': 'text/plain' });
@@ -55,8 +58,6 @@ server.on('request', function (req, res) {//httpリクエストがあった(=ア
                 res.write('Bad Request');
                 res.end();    
             }
-
-
         })
     }
 });
